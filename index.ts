@@ -2,9 +2,8 @@ import fetch = require('node-fetch');
 import cheerio = require('cheerio');
 import fs = require('fs');
 import m = require('minimist');
-
-
 let args = m(process.argv.slice(2));
+
 if (typeof args['c'] !== 'undefined') {
     if (args['c'] === 'fetch') {
         fetchCatalogs();
