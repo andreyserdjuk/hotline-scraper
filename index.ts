@@ -16,9 +16,26 @@ if (typeof args['c'] !== 'undefined') {
 
 function grabAnalytics(fileName:string = 'out.txt') {
     if (fs.existsSync(fileName)) {
-        let file = fs.openSync(fileName, 'r');
-        console.log('grab analytics');
-        // todo
+        // let file = fs.openSync(fileName, 'r');
+        fs.readFile(fileName, 'utf8', function (err,data) {
+            if (err) {
+                return console.log(err);
+            }
+            let links = data.split('\r\n');
+
+            for (let link of links) {
+                fetch(link)
+                .then(res => {
+                    return res.text();
+                })
+                .then(body => {
+                    let $ = cheerio.load(body);
+                    $('body');
+                })
+            }
+        });
+    } else {
+        console.log('there are no "%s" file', fileName);
     }
 }
 
