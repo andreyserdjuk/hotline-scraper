@@ -24,18 +24,31 @@ function grabAnalytics(fileName:string = 'out.txt') {
             let links = data.split('\r\n');
 
             for (let link of links) {
-                fetch(link)
+                fetch(link) // goto category page
                 .then(res => {
                     return res.text();
                 })
                 .then(body => {
-                    let $ = cheerio.load(body);
-                    $('body');
+                    // extract first 10 product ids
+                    // let $ = cheerio.load(body);
+                    // $('body');
+                    let first10ProductIds = extractProductIdsFromCatPage(body);
                 })
             }
         });
     } else {
         console.log('there are no "%s" file', fileName);
+    }
+}
+
+function extractProductIdsFromCatPage(body) {
+    let first10Arr = body.search(/catalogFirst10Products\s*\'\s*:\s*\'((,?\d+)+)/);
+
+    if (typeof first10Arr[1] !== 'undefined') {
+        try {
+            let productIdsString = JSON.parse(first10Arr[1])
+            return productIdsString.split(',');
+        } catch (e) {}
     }
 }
 
