@@ -1,3 +1,4 @@
+import * as es6Promise from 'es6-promise';
 import fetch = require('node-fetch');
 import cheerio = require('cheerio');
 import fs = require('fs');
@@ -6,7 +7,10 @@ let args = m(process.argv.slice(2));
 
 if (typeof args['c'] !== 'undefined') {
     if (args['c'] === 'fetch') {
-        fetchCatalogs();
+        let fetcher = new CatalogListFetcher('http://hotline.ua/catalog/', getHeaders())
+        fetcher.fetchCatalogs().then(links => 
+            fs.writeFileSync('out.txt', links.join('\r\n'))
+        );
     }
 
     if (args['c'] === 'grab_analytics') {
@@ -16,26 +20,21 @@ if (typeof args['c'] !== 'undefined') {
 
 function grabAnalytics(fileName:string = 'out.txt') {
     if (fs.existsSync(fileName)) {
-        // let file = fs.openSync(fileName, 'r');
-        fs.readFile(fileName, 'utf8', function (err,data) {
-            if (err) {
-                return console.log(err);
-            }
-            let links = data.split('\r\n');
+        let data = fs.readFileSync(fileName, 'utf8')
+        let links = data.split('\r\n');
 
-            for (let link of links) {
-                fetch(link) // goto category page
-                .then(res => {
-                    return res.text();
-                })
-                .then(body => {
-                    // extract first 10 product ids
-                    // let $ = cheerio.load(body);
-                    // $('body');
-                    let first10ProductIds = extractProductIdsFromCatPage(body);
-                })
-            }
-        });
+        for (let link of links) {
+            fetch(link, {headers:this.headers}) // goto category page
+            .then(res => {
+                return res.text();
+            })
+            .then(body => {
+                // extract first 10 product ids
+                // let $ = cheerio.load(body);
+                // $('body');
+                let first10ProductIds = extractProductIdsFromCatPage(body);
+            })
+        }
     } else {
         console.log('there are no "%s" file', fileName);
     }
@@ -52,18 +51,30 @@ function extractProductIdsFromCatPage(body) {
     }
 }
 
-function fetchCatalogs() {
-    fetch('http://hotline.ua/catalog/')
-    .then(res => {
-        return res.text();
-    })
-    .then(body => {
+class CatalogListFetcher {
+    constructor(private url:string, private headers:{}) {}
+
+    public fetchCatalogs():Promise<Array<any>> {
+        return fetch(this.url, {headers: this.headers})
+        .then(res => {
+            return res.text();
+        })
+        .then(body => {
+            return this.parseCatalogLinks(body);
+        });
+    }
+
+    protected parseCatalogLinks(body:string):Array<any> {
         let $ = cheerio.load(body);
         let links = $('.block').filter('.p_r-20').find('a');
         let hrefs = links.map((k, v) => {
             return $(v).attr('href').replace(/^(\/|http:\/\/\w+\.ua\/)/, 'http://hotline.ua/');
         });
 
-        fs.writeFileSync('out.txt', hrefs.toArray().join('\r\n'));
-    });
+        return hrefs.toArray();
+    }
+}
+
+function getHeaders() {
+    return JSON.parse(fs.readFileSync('headers.json', 'utf8'));
 }
