@@ -1,61 +1,84 @@
-import * as es6Promise from 'es6-promise';
-import fetch = require('node-fetch');
-import cheerio = require('cheerio');
-import fs = require('fs');
-import m = require('minimist');
-let args = m(process.argv.slice(2));
+import * as fetch from 'node-fetch';
+import * as cheerio from 'cheerio';
+import * as fs from 'fs';
+import * as minimist from 'minimist';
+let args = minimist(process.argv.slice(2));
 
 if (typeof args['c'] !== 'undefined') {
     if (args['c'] === 'fetch') {
         let fetcher = new CatalogListFetcher('http://hotline.ua/catalog/', getHeaders())
-        fetcher.fetchCatalogs().then(links => 
+        fetcher.fetch().then(links => 
             fs.writeFileSync('out.txt', links.join('\r\n'))
         );
     }
 
     if (args['c'] === 'grab_analytics') {
-        grabAnalytics();
+        let afetcher = new AnalyticsFetcher(getHeaders());
+        // afetcher.fetch
     }
 }
 
-function grabAnalytics(fileName:string = 'out.txt') {
-    if (fs.existsSync(fileName)) {
-        let data = fs.readFileSync(fileName, 'utf8')
-        let links = data.split('\r\n');
+class AnalyticsFetcher {
+    constructor(private headers:{}) {}
 
-        for (let link of links) {
-            fetch(link, {headers:this.headers}) // goto category page
-            .then(res => {
-                return res.text();
-            })
-            .then(body => {
-                // extract first 10 product ids
-                // let $ = cheerio.load(body);
-                // $('body');
-                let first10ProductIds = extractProductIdsFromCatPage(body);
-            })
+    public fetchSavedLinks(fileName:string = 'out.txt') {
+        if (fs.existsSync(fileName)) {
+            let data = fs.readFileSync(fileName, 'utf8')
+            let links = data.split('\r\n');
+            return this.fetch(links);
+        } else {
+            console.log('there are no "%s" file', fileName);
         }
-    } else {
-        console.log('there are no "%s" file', fileName);
     }
-}
+    
+    public fetch(catalogLinks:Array<string>):Array<Promise<Map<string,number>>> {
+        let promises = [];
+        for (let link of catalogLinks) {
+            promises.push(
+                fetch(link, getFetchParams()) // goto category page
+                .then(res => {
+                    return res.text();
+                })
+                .then(body => {
+                    let productIds = this.extractProductIdsFromCatPage(body);
+                    // productIds.map(this.fetchProductLastPopularity);
+                    // fetch(link, getFetchParams())
+                })
+            );
+        }
 
-function extractProductIdsFromCatPage(body) {
-    let first10Arr = body.search(/catalogFirst10Products\s*\'\s*:\s*\'((,?\d+)+)/);
+        return promises;
+    }
 
-    if (typeof first10Arr[1] !== 'undefined') {
-        try {
-            let productIdsString = JSON.parse(first10Arr[1])
-            return productIdsString.split(',');
-        } catch (e) {}
+    protected fetchProductLastPopularity(productId:number):Promise<number> {
+        return fetch(
+            "http://hotline.ua/temp/charts/81895/30popul.csv?rnd=" + Math.random(),
+            this.headers
+        )
+        .then(file => {
+            //todo verify load csv
+        });
+    } 
+    
+    protected extractProductIdsFromCatPage(body):Array<number> {
+        let first10Arr = body.search(/catalogFirst10Products\s*\'\s*:\s*\'((,?\d+)+)/);
+
+        if (typeof first10Arr[1] !== 'undefined') {
+            try {
+                let productIdsString = JSON.parse(first10Arr[1])
+                return productIdsString.split(',');
+            } catch (e) {}
+        }
+
+        return [];
     }
 }
 
 class CatalogListFetcher {
     constructor(private url:string, private headers:{}) {}
 
-    public fetchCatalogs():Promise<Array<any>> {
-        return fetch(this.url, {headers: this.headers})
+    public fetch():Promise<Array<any>> {
+        return fetch(this.url, getFetchParams())
         .then(res => {
             return res.text();
         })
@@ -75,6 +98,19 @@ class CatalogListFetcher {
     }
 }
 
-function getHeaders() {
-    return JSON.parse(fs.readFileSync('headers.json', 'utf8'));
+interface RequestInit {
+     [index: string]: string;
+}
+
+function getFetchParams() {
+    let headers = JSON.parse(fs.readFileSync('headers.json', 'utf8')) as RequestInit;
+    return {
+        'method': 'GET',
+        'headers': headers
+    };
+}
+
+function getHeaders():RequestInit {
+    let headers = JSON.parse(fs.readFileSync('headers.json', 'utf8')) as RequestInit;
+    return headers;
 }

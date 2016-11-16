@@ -1,11 +1,16 @@
 {
     "compilerOptions": {
-        "module": "commonjs",
-        "target": "es5",
+        "module": "es6",
+        "target": "es6",
         "noImplicitAny": false,
         "sourceMap": false
     },
     "exclude": [
-        "node_modules"
+        "node_modules",
+        "typings/modules",
+        "typings/node",
+        "typings/tsd.d.ts",
+        "typings/index.d.ts",
+        "typings/globals/es6-promise"
     ]
 }
