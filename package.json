@@ -11,8 +11,8 @@
     "mocha": "^3.1.2"
   },
   "scripts": {
-    "test": "node ./node_modules/mocha/bin/mocha --reporter spec",
-    "debug": "node --inspect --debug-brk ./node_modules/mocha/bin/mocha --reporter spec"
+    "test": "node ./node_modules/mocha/bin/mocha --reporter spec --timeout 5000",
+    "debug": "node --inspect --debug-brk ./node_modules/mocha/bin/mocha --debug-brk --reporter spec"
   },
   "author": "",
   "license": "ISC"

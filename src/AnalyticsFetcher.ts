@@ -1,3 +1,5 @@
+import { ReadableStream } from 'NodeJS';
+import { debug } from 'util';
 import * as console from 'console';
 import * as fetch from 'node-fetch';
 import {HeadersInitInterface} from 'HeadersInitInterface';
@@ -24,13 +26,15 @@ export class AnalyticsFetcher {
         return promises;
     }
 
-    public fetchProductLastPopularity(productId:number):Promise<number> {
+    public fetchProductLastPopularity(productId:number):Promise<ReadableStream> {
         return fetch(
             "http://hotline.ua/temp/charts/81895/30popul.csv?rnd=" + Math.random(),
             this.headers
         )
         .then(file => {
-            //todo verify load csv
+            let f = file as ReadableStream;
+            // return f.body.read().pop();
+            return f;
         });
     } 
     
