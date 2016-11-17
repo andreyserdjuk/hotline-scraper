@@ -11,7 +11,11 @@
             "program": "${workspaceRoot}/node_modules/mocha/bin/mocha",
             "cwd": "${workspaceRoot}",
             "outFiles": [],
-            "sourceMaps": true
+            "sourceMaps": true,
+            "port": 5858,
+            "args": [
+                "--debug-brk"
+            ]
         },
         {
             "type": "node",
