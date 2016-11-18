@@ -32,4 +32,16 @@ describe('AnalyticsFetcher', () => {
       }
     );
   });
+
+  it('fetch', (done) => {
+    let headers = fs.readFileSync(__dirname + '/../app/config/headers.json');
+    let af = new AnalyticsFetcher(JSON.parse(headers.toString()));
+    af.fetch(
+      ['http://hotline.ua/computer/servery/', 'http://hotline.ua/computer/videokarty/']
+    )
+    .then(v => {
+      assert.equal(v.length, 2);
+      done();
+    });
+  });
 });

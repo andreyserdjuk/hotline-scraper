@@ -1,4 +1,3 @@
-import { debug } from 'util';
 import * as csvParse from 'csv-parse';
 import * as console from 'console';
 import * as fetch from 'node-fetch';
@@ -7,23 +6,37 @@ import {HeadersInitInterface} from 'HeadersInitInterface';
 export class AnalyticsFetcher {
     constructor(private headers:HeadersInitInterface) {}
     
-    public fetch(catalogLinks:Array<string>):Array<Promise<Map<string,number>>> {
+    public fetch(catalogLinks:Array<string>):Promise<Array<Array<{[index:number]: number}>>> {
         let promises = [];
         for (let link of catalogLinks) {
             promises.push(
-                fetch(link, {headers: this.headers}) // goto category page
-                .then(res => {
-                    return res.text();
-                })
-                .then(body => {
-                    let productIds = AnalyticsFetcher.extractProductIdsFromCatPage(body);
-                    // productIds.map(this.fetchProductLastPopularity);
-                    // fetch(link, getFetchParams())
+                new Promise((resolve, reject) => {
+                    fetch(link, {headers: this.headers}) // goto category page
+                    .then(res => {
+                        return res.text();
+                    })
+                    .then(body => {
+                        let productIds = AnalyticsFetcher.extractProductIdsFromCatPage(body)
+                        let productIdsPromises = productIds.map(productId => {
+                            return new Promise((resolve, reject) => {
+                                this.fetchProductLastPopularity(productId)
+                                    .then(popul => {
+                                        let res = {};
+                                        res[productId] = popul;
+                                        resolve(res);
+                                    })
+                            });
+                        });
+
+                        Promise
+                            .all(productIdsPromises)
+                            .then((stats10) => resolve(stats10)); // [{1:3000}, {2:4433}, ...]
+                    })
                 })
             );
         }
 
-        return promises;
+        return Promise.all(promises); // [[{1:3000}, {2:4433}, ...], [{3:3000}, {5:4433}, ...], ...]
     }
 
     public fetchProductLastPopularity(productId:number):Promise<number> {
@@ -32,8 +45,6 @@ export class AnalyticsFetcher {
             this.headers
         )
         .then(file => {
-            // let f = file as ReadableStream;
-            // return f.body.read().pop();
             return file.text();
         })
         .then(text => {
@@ -46,8 +57,7 @@ export class AnalyticsFetcher {
                     resolve(parseInt(data.pop().pop()));
                 });
             })
-        })
-        ;
+        });
     } 
     
     public static extractProductIdsFromCatPage(body:string):Array<number> {
