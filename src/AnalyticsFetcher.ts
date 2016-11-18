@@ -1,5 +1,5 @@
-import { ReadableStream } from 'NodeJS';
 import { debug } from 'util';
+import * as csvParse from 'csv-parse';
 import * as console from 'console';
 import * as fetch from 'node-fetch';
 import {HeadersInitInterface} from 'HeadersInitInterface';
@@ -26,16 +26,28 @@ export class AnalyticsFetcher {
         return promises;
     }
 
-    public fetchProductLastPopularity(productId:number):Promise<ReadableStream> {
+    public fetchProductLastPopularity(productId:number):Promise<number> {
         return fetch(
             "http://hotline.ua/temp/charts/81895/30popul.csv?rnd=" + Math.random(),
             this.headers
         )
         .then(file => {
-            let f = file as ReadableStream;
+            // let f = file as ReadableStream;
             // return f.body.read().pop();
-            return f;
-        });
+            return file.text();
+        })
+        .then(text => {
+            return new Promise((resolve, reject) => {
+                csvParse(text, {delimiter: ';'}, function(err, data){
+                    if (err || !Array.isArray(data)) {
+                        reject(err);
+                    }
+
+                    resolve(parseInt(data.pop().pop()));
+                });
+            })
+        })
+        ;
     } 
     
     public static extractProductIdsFromCatPage(body:string):Array<number> {

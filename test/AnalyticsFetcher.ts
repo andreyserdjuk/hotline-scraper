@@ -22,12 +22,14 @@ describe('AnalyticsFetcher', () => {
     let headers = fs.readFileSync(__dirname + '/../app/config/headers.json');
     let af = new AnalyticsFetcher(JSON.parse(headers.toString()));
     let popul = af.fetchProductLastPopularity(2522553);
-    popul.then(populInt => {
-      
-      // debug;
-      // let i = populInt.;
-      // assert.ok(typeof i === 'number');
-      done();
-    }, err => console.log(err));
+    popul.then(
+      populInt => {
+        assert.ok(typeof populInt === 'number');
+        done();
+      },
+      err => {
+        throw err;
+      }
+    );
   });
 });
